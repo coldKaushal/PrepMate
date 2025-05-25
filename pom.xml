@@ -12,8 +12,10 @@
     </parent>
 
     <groupId>com.example</groupId>
-    <artifactId>whatsapp-demo</artifactId>
+    <artifactId>PrepMate</artifactId>
     <version>1.0-SNAPSHOT</version>
+    <name>PrepMate</name>
+    <description>PrepMate WhatsApp Integration Service</description>
 
     <properties>
         <java.version>11</java.version>
@@ -23,6 +25,12 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-devtools -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <version>3.4.5</version>
         </dependency>
     </dependencies>
 

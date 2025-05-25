@@ -1,7 +1,10 @@
 package com.example.controller;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import com.example.service.WhatsAppService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -10,6 +13,9 @@ public class WebhookController {
 
     private static final String VERIFY_TOKEN = "my-secret-token-123";
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Autowired
+    private WhatsAppService whatsAppService;
 
     // Handle GET for verification
     @GetMapping("/webhook")
@@ -40,6 +46,7 @@ public class WebhookController {
                 String text = message.path("text").path("body").asText(); // Text content
 
                 // output the received message
+                whatsAppService.processMessage(root);
                 System.out.println("Received message from: " + from);
                 System.out.println("Message: " + text);
             }
