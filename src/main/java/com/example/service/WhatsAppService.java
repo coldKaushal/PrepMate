@@ -5,17 +5,21 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Service
 public class WhatsAppService {
-
+    private static final Logger logger = LoggerFactory.getLogger(WhatsAppService.class);
     private final WhatsAppConfig whatsAppConfig;
     private final RestTemplate restTemplate;
+    private static final String AI_COMPANION_URL = "http://localhost:8000/ai-companion";
 
     public WhatsAppService(WhatsAppConfig whatsAppConfig) {
         this.whatsAppConfig = whatsAppConfig;
@@ -50,6 +54,7 @@ public class WhatsAppService {
     }
 
     public void sendMessage(String phoneNumber, String message) {
+        System.out.println(message);
         String url = String.format("%s/%s/messages",
                 whatsAppConfig.getApiUrl(),
                 whatsAppConfig.getPhoneNumberId());
@@ -74,26 +79,43 @@ public class WhatsAppService {
 
     public String processMessage(JsonNode webhookPayload) {
         String phoneNumber = extractPhoneNumber(webhookPayload);
-        String responseMessage = "Hello, how can I help you today?";
+        String userMessage = extractMessage(webhookPayload);
+        String userName = extractName(webhookPayload);
         
         try {
-            System.out.println(responseMessage);
-            // Then send a text response back to the user
-            sendMessage(phoneNumber, responseMessage);
+            // Prepare request for AI companion
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            Map<String, String> requestBody = new HashMap<>();
+            requestBody.put("user_phone_number", phoneNumber);
+            requestBody.put("user_name", userName); // You might want to get this from a user database
+            requestBody.put("user_message", userMessage);
+
+            HttpEntity<Map<String, String>> request = new HttpEntity<>(requestBody, headers);
             
-            return responseMessage;
+            // Call AI companion API
+            logger.info("Sending request to AI companion: {}", requestBody);
+            ResponseEntity<JsonNode> responseEntity = restTemplate.postForEntity(AI_COMPANION_URL, request, JsonNode.class);
+            
+            String aiResponse = responseEntity.getBody().get("response").asText();
+            logger.info("Received response from AI companion: {}", aiResponse);
+            
+            // Send the AI response back to the user
+            sendMessage(phoneNumber, aiResponse);
+            
+            return aiResponse;
         } catch (Exception e) {
-            responseMessage = "Failed to process the message";
+            String errorMessage = "Sorry, I'm having trouble processing your request right now.";
+            logger.error("Error processing message: {}", e.getMessage(), e);
             try {
-                sendMessage(phoneNumber, responseMessage);
+                sendMessage(phoneNumber, errorMessage);
             } catch (Exception ex) {
-                // Log the error but don't throw it since we already have a primary error
-                System.err.println("Failed to send error message: " + ex.getMessage());
+                logger.error("Failed to send error message: {}", ex.getMessage(), ex);
             }
-            return responseMessage;
+            return errorMessage;
         }
     }
-
 
     private String extractPhoneNumber(JsonNode webhookPayload) {
         // Extract phone number from WhatsApp webhook payload
@@ -121,6 +143,20 @@ public class WhatsAppService {
                 .get("body").asText();
         } catch (Exception e) {
             throw new RuntimeException("Failed to extract message from webhook payload", e);
+        }
+    }
+
+    private String extractName(JsonNode webhookPayload){
+        try {
+            return webhookPayload
+                .get("entry").get(0)
+                .get("changes").get(0)
+                .get("value")
+                .get("contacts").get(0)
+                .get("profile")
+                .get("name").asText();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to extract name from webhook payload", e);
         }
     }
 } 

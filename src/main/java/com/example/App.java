@@ -14,6 +14,6 @@ public class App {
         WhatsAppService whatsAppService = context.getBean(WhatsAppService.class);
         
         // Send an initial hello world message
-        whatsAppService.sendMessage("919821106093", "Server is up and ready to receive messages!");
+        // whatsAppService.sendMessage("919821106093", "Server is up and ready to receive messages!");
     }
 }
